@@ -1,3 +1,21 @@
+# Virtual Environment
 venv/
+.venv/
+env/
+ENV/
 
-env/    
+# Sensitive Data / API Keys
+.env
+.env*.local
+
+# Python Caches & Compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS Specific
+.DS_Store
+Thumbs.db
