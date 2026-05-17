@@ -11,6 +11,7 @@ from executors.workflow_executor import execute_plan
 from agents.report_agent import ReportAgent
 from reports.pdf_generator import build_pdf_report
 from services.auth_service import register_user, authenticate_user, decode_jwt
+from services.database_service import save_analysis, get_user_history, get_analysis, delete_analysis
 
 app = FastAPI(title="Agentic AI Analytics API")
 
@@ -70,6 +71,25 @@ def auth_login(req: LoginRequest):
 def auth_me(user: dict = Depends(get_current_user)):
     return user
 
+# --- HISTORICAL BRIEFINGS ENDPOINTS ---
+@app.get("/api/history")
+def fetch_history(user: dict = Depends(get_current_user)):
+    return get_user_history(user["username"])
+
+@app.get("/api/history/{id}")
+def fetch_analysis_detail(id: str, user: dict = Depends(get_current_user)):
+    record = get_analysis(id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Analysis record not found.")
+    return record
+
+@app.delete("/api/history/{id}")
+def remove_analysis_record(id: str, user: dict = Depends(get_current_user)):
+    success = delete_analysis(user["username"], id)
+    if not success:
+        raise HTTPException(status_code=550, detail="Failed to delete history record.")
+    return {"success": True}
+
 # --- SECURED ANALYTICS ENDPOINTS ---
 @app.post("/api/upload")
 async def upload_csv(
@@ -77,8 +97,9 @@ async def upload_csv(
     objective: str = Form(None),
     authorization: str = Header(None)
 ):
-    # Verify session JWT
-    await get_current_user(authorization)
+    # Verify session JWT and fetch username
+    user = await get_current_user(authorization)
+    username = user.get("username")
     
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported.")
@@ -108,6 +129,19 @@ async def upload_csv(
 
         # 4. Report Agent: Synthesize elite executive strategy briefing
         report = ReportAgent.generate_executive_report(state, objective, df)
+
+        # 5. Persistent database entry
+        save_analysis(
+            username=username,
+            objective=objective or "General EDA",
+            plan=plan,
+            eda=state.get("eda", {}),
+            charts=state.get("charts", {}),
+            insights=state.get("insights", ""),
+            models=state.get("models", {}),
+            agent_logs=state.get("agent_logs", []),
+            report=report
+        )
 
         # Build final response payload
         return {

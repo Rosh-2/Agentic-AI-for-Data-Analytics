@@ -3,6 +3,7 @@ import { Activity, RefreshCcw, Target, LogOut, User } from 'lucide-react'
 import FileUpload from './components/FileUpload'
 import DashboardLayout from './components/DashboardLayout'
 import AuthLayout from './components/AuthLayout'
+import HistorySidebar from './components/HistorySidebar'
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('jwt_token') || null)
@@ -10,6 +11,7 @@ function App() {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0)
 
   const handleAuthSuccess = (newToken, newUser) => {
     localStorage.setItem('jwt_token', newToken);
@@ -38,8 +40,10 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans h-screen overflow-hidden">
+      
+      {/* Premium Header */}
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-0 z-50 shrink-0">
         <div className="flex items-center">
           <Activity className="w-6 h-6 text-indigo-600 mr-2" />
           <h1 className="text-xl font-bold text-slate-800 tracking-tight">Agentic AI Analytics</h1>
@@ -72,54 +76,78 @@ function App() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 flex flex-col gap-8 animate-in fade-in duration-500">
-        {!dashboardData && (
-          <>
-            <div className="text-center mb-4 mt-8 space-y-4">
-              <h2 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">
-                Automated Dataset Understanding
-              </h2>
-              <p className="text-base text-slate-500 max-w-xl mx-auto font-medium">
-                Upload any dataset to instantly execute dynamic statistical EDA, quantitative clusters, Scikit-Learn predictions, and expert strategic briefings.
-              </p>
-            </div>
-            <div className="w-full max-w-3xl mx-auto">
-              <FileUpload 
-                setData={setDashboardData} 
-                setLoading={setLoading} 
-                setError={setError} 
-                loading={loading} 
-                token={token}
-              />
-              {error && (
-                <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-200 font-semibold text-sm">
-                  {error}
+      {/* Main Workspace with Sidebar */}
+      <div className="flex flex-1 overflow-hidden bg-slate-50">
+        
+        {/* Dynamic Previous Briefings Sidebar */}
+        <HistorySidebar 
+          token={token}
+          refreshTrigger={refreshHistoryTrigger}
+          onSelectBriefing={(briefing) => {
+            setError(null);
+            setDashboardData(briefing);
+          }}
+          onDeleted={(deletedId) => {
+            if (dashboardData && dashboardData.id === deletedId) {
+              setDashboardData(null);
+            }
+          }}
+        />
+
+        {/* Content Panel (Independently Scrollable) */}
+        <main className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-8 scrollbar-thin">
+          {!dashboardData && (
+            <>
+              <div className="text-center mb-4 mt-8 space-y-4">
+                <h2 className="text-3xl font-extrabold text-slate-900 sm:text-4xl">
+                  Automated Dataset Understanding
+                </h2>
+                <p className="text-base text-slate-500 max-w-xl mx-auto font-medium">
+                  Upload any dataset to instantly execute dynamic statistical EDA, quantitative clusters, Scikit-Learn predictions, and expert strategic briefings.
+                </p>
+              </div>
+              <div className="w-full max-w-3xl mx-auto">
+                <FileUpload 
+                  setData={(data) => {
+                    setDashboardData(data);
+                    setRefreshHistoryTrigger(prev => prev + 1);
+                  }} 
+                  setLoading={setLoading} 
+                  setError={setError} 
+                  loading={loading} 
+                  token={token}
+                />
+                {error && (
+                  <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-200 font-semibold text-sm">
+                    {error}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {dashboardData && (
+            <div className="space-y-6 animate-in fade-in duration-500">
+              {/* Active Goal Display */}
+              {dashboardData.intent && dashboardData.intent.task !== 'general_eda' && (
+                <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
+                  <div className="p-2.5 bg-indigo-100 rounded-xl text-indigo-600 border border-indigo-200">
+                    <Target className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-indigo-900 text-sm">Current Goal: {dashboardData.intent.task.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h3>
+                    <p className="text-xs text-indigo-700 mt-1 font-semibold leading-relaxed">
+                      {dashboardData.objective || "Targeted analysis based on your requirements."}
+                    </p>
+                  </div>
                 </div>
               )}
+              <DashboardLayout dashboardData={dashboardData} token={token} />
             </div>
-          </>
-        )}
+          )}
+        </main>
+      </div>
 
-        {dashboardData && (
-          <div className="space-y-6">
-            {/* Active Goal Display */}
-            {dashboardData.intent && dashboardData.intent.task !== 'general_eda' && (
-              <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 flex items-start gap-4 shadow-sm">
-                <div className="p-2.5 bg-indigo-100 rounded-xl text-indigo-600 border border-indigo-200">
-                  <Target className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-indigo-900 text-sm">Current Goal: {dashboardData.intent.task.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</h3>
-                  <p className="text-xs text-indigo-700 mt-1 font-semibold leading-relaxed">
-                    {dashboardData.objective || "Targeted analysis based on your requirements."}
-                  </p>
-                </div>
-              </div>
-            )}
-            <DashboardLayout dashboardData={dashboardData} token={token} />
-          </div>
-        )}
-      </main>
     </div>
   )
 }

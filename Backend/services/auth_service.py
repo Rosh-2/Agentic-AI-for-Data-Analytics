@@ -5,24 +5,9 @@ import hashlib
 import base64
 import time
 
+from services.database_service import get_user, save_user
+
 SECRET_KEY = os.getenv("JWT_SECRET", "enterprise-analytics-secret-key-19385")
-DB_FILE = os.path.join(os.path.dirname(__file__), "users.json")
-
-def _load_users() -> dict:
-    if not os.path.exists(DB_FILE):
-        return {}
-    try:
-        with open(DB_FILE, 'r') as f:
-            return json.load(f)
-    except:
-        return {}
-
-def _save_users(users: dict):
-    try:
-        with open(DB_FILE, 'w') as f:
-            json.dump(users, f, indent=2)
-    except Exception as e:
-        print(f"Error saving user database: {e}")
 
 # Password Cryptography
 def hash_password(password: str) -> str:
@@ -89,32 +74,29 @@ def decode_jwt(token: str) -> dict:
 
 # Public Services
 def register_user(username: str, email: str, password: str) -> dict:
-    users = _load_users()
     clean_username = username.strip().lower()
     
     if not clean_username or not password:
         return {"success": False, "message": "Username and password are required."}
         
-    if clean_username in users:
+    existing_user = get_user(clean_username)
+    if existing_user:
         return {"success": False, "message": "Username is already registered."}
         
-    users[clean_username] = {
-        "username": username,
-        "email": email,
-        "password": hash_password(password),
-        "created_at": int(time.time())
-    }
-    _save_users(users)
-    return {"success": True, "message": "User registered successfully."}
+    hashed_pw = hash_password(password)
+    saved = save_user(username, email, hashed_pw)
+    
+    if saved:
+        return {"success": True, "message": "User registered successfully."}
+    return {"success": False, "message": "Failed to store user profile."}
 
 def authenticate_user(username: str, password: str) -> dict:
-    users = _load_users()
     clean_username = username.strip().lower()
     
-    if clean_username not in users:
+    user_record = get_user(clean_username)
+    if not user_record:
         return {"success": False, "message": "Invalid username or password."}
         
-    user_record = users[clean_username]
     if not verify_password(password, user_record["password"]):
         return {"success": False, "message": "Invalid username or password."}
         
