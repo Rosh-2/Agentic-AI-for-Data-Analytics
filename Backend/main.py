@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -10,6 +10,7 @@ from agents.planner_agent import generate_plan
 from executors.workflow_executor import execute_plan
 from agents.report_agent import ReportAgent
 from reports.pdf_generator import build_pdf_report
+from services.auth_service import register_user, authenticate_user, decode_jwt
 
 app = FastAPI(title="Agentic AI Analytics API")
 
@@ -26,8 +27,59 @@ class PDFRequest(BaseModel):
     report: dict
     objective: str
 
+class RegisterRequest(BaseModel):
+    username: str
+    email: str = ""
+    password: str
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+# Token Validation Dependency
+async def get_current_user(authorization: str = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization Header")
+    try:
+        token_type, token = authorization.split(" ")
+        if token_type.lower() != "bearer":
+            raise HTTPException(status_code=401, detail="Invalid token type")
+        user = decode_jwt(token)
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return user
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid authorization header format")
+
+# --- AUTH ENDPOINTS ---
+@app.post("/api/auth/register")
+def auth_register(req: RegisterRequest):
+    res = register_user(req.username, req.email, req.password)
+    if not res["success"]:
+        raise HTTPException(status_code=400, detail=res["message"])
+    return res
+
+@app.post("/api/auth/login")
+def auth_login(req: LoginRequest):
+    res = authenticate_user(req.username, req.password)
+    if not res["success"]:
+        raise HTTPException(status_code=400, detail=res["message"])
+    return res
+
+@app.get("/api/auth/me")
+def auth_me(user: dict = Depends(get_current_user)):
+    return user
+
+# --- SECURED ANALYTICS ENDPOINTS ---
 @app.post("/api/upload")
-async def upload_csv(file: UploadFile = File(...), objective: str = Form(None)):
+async def upload_csv(
+    file: UploadFile = File(...), 
+    objective: str = Form(None),
+    authorization: str = Header(None)
+):
+    # Verify session JWT
+    await get_current_user(authorization)
+    
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported.")
     
@@ -75,7 +127,10 @@ async def upload_csv(file: UploadFile = File(...), objective: str = Form(None)):
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 @app.post("/api/download-pdf")
-def download_pdf(req: PDFRequest):
+async def download_pdf(req: PDFRequest, authorization: str = Header(None)):
+    # Verify session JWT
+    await get_current_user(authorization)
+    
     try:
         pdf_buffer = build_pdf_report(req.report, req.objective)
         return StreamingResponse(
