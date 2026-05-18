@@ -8,3 +8,4 @@ groq
 scikit-learn
 fpdf2
 numpy
+langgraph
