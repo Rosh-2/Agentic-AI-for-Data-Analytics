@@ -1,16 +1,11 @@
 import React from 'react'
-import { FileText, Download, ShieldAlert, Sparkles, TrendingUp, Loader2, ArrowUpRight, Percent, Landmark } from 'lucide-react'
+import { FileText, Download, ShieldAlert, Sparkles, TrendingUp, Loader2 } from 'lucide-react'
 
 export default function ExecutiveReport({ report, objective, models, onDownloadPDF, onDownloadMarkdown, isDownloading }) {
   if (!report) return null;
 
-  const { executive_summary, insights, recommendations, risk_summary, business_impact } = report;
+  const { executive_summary, insights, recommendations, risk_summary } = report;
   
-  // Extract generalized and backward compatible metrics
-  const val_opp = business_impact?.estimated_target_opportunity ?? business_impact?.estimated_high_risk_customers ?? 0;
-  const val_impact = business_impact?.estimated_financial_impact ?? business_impact?.potential_revenue_at_risk ?? 0.0;
-  const val_score = business_impact?.strategic_optimization_index ?? business_impact?.retention_opportunity_score ?? 80;
-
   const getConfidenceColor = (confidence) => {
     switch (confidence?.toLowerCase()) {
       case 'high': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
@@ -33,7 +28,7 @@ export default function ExecutiveReport({ report, objective, models, onDownloadP
             <FileText className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-slate-850">Executive Decision Briefing</h3>
+            <h3 className="text-xl font-bold text-slate-855">Executive Decision Briefing</h3>
             <p className="text-xs text-slate-500 font-medium">Autonomously synthesized from multi-agent deep analytics</p>
           </div>
         </div>
@@ -64,56 +59,6 @@ export default function ExecutiveReport({ report, objective, models, onDownloadP
           </button>
         </div>
       </div>
-
-      {/* Generalized Executive KPI Cards */}
-      {business_impact && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1: Estimated Target Opportunity */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-850 rounded-2xl border border-slate-850 p-6 shadow-md flex items-center justify-between text-white relative overflow-hidden group">
-            <div className="space-y-1 z-10">
-              <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block">Estimated Target Opportunity</span>
-              <h3 className="text-3xl font-extrabold tracking-tight">
-                {val_opp?.toLocaleString()}
-              </h3>
-              <p className="text-xs text-slate-400 font-medium">High-impact segments or values identified</p>
-            </div>
-            <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-indigo-400 z-10">
-              <ArrowUpRight className="w-6 h-6" />
-            </div>
-            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-indigo-600/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-          </div>
-
-          {/* Card 2: Estimated Financial Impact */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-850 rounded-2xl border border-slate-850 p-6 shadow-md flex items-center justify-between text-white relative overflow-hidden group">
-            <div className="space-y-1 z-10">
-              <span className="text-[10px] font-bold text-rose-400 uppercase tracking-widest block">Estimated Financial Impact</span>
-              <h3 className="text-3xl font-extrabold tracking-tight text-rose-100">
-                ${val_impact?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-              <p className="text-xs text-slate-400 font-medium">Projected variance exposure based on ticket metrics</p>
-            </div>
-            <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-rose-400 z-10">
-              <Landmark className="w-6 h-6" />
-            </div>
-            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-rose-600/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-          </div>
-
-          {/* Card 3: Strategic Optimization Index */}
-          <div className="bg-gradient-to-br from-slate-900 to-slate-850 rounded-2xl border border-slate-850 p-6 shadow-md flex items-center justify-between text-white relative overflow-hidden group">
-            <div className="space-y-1 z-10">
-              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block">Strategic Optimization Index</span>
-              <h3 className="text-3xl font-extrabold tracking-tight text-emerald-100">
-                {val_score}/100
-              </h3>
-              <p className="text-xs text-slate-400 font-medium">Viability rating computed from model metrics</p>
-            </div>
-            <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-emerald-400 z-10">
-              <Percent className="w-6 h-6" />
-            </div>
-            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-emerald-600/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700"></div>
-          </div>
-        </div>
-      )}
 
       {/* Narrative & Feature Importance Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -214,7 +159,7 @@ export default function ExecutiveReport({ report, objective, models, onDownloadP
                 </details>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-50 space-y-1">
+              <div className="mt-3 pt-2 border-t border-slate-55 space-y-1">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Empirical Evidence</span>
                 <p className="text-[11px] text-slate-500 font-normal italic">
                   "{rec.evidence}"

@@ -40,36 +40,6 @@ def build_pdf_report(report_data: dict, objective: str) -> io.BytesIO:
     pdf.multi_cell(0, 5, report_data.get("executive_summary", "No summary compiled."))
     pdf.ln(5)
     
-    # NEW: Business Impact Summary Table
-    business_impact = report_data.get("business_impact", {})
-    if business_impact:
-        pdf.set_font("Helvetica", "B", 11)
-        pdf.set_text_color(30, 41, 59)
-        pdf.cell(0, 6, "Business Impact Metrics Summary:", ln=True)
-        pdf.ln(1.5)
-        
-        pdf.set_font("Helvetica", "", 9.5)
-        pdf.set_fill_color(248, 250, 252) # Light slate background
-        
-        # Columns
-        val_opp = business_impact.get('estimated_target_opportunity', business_impact.get('estimated_high_risk_customers', 0))
-        pdf.cell(60, 8, " Estimated Target Opportunity:", border=1, fill=True)
-        pdf.set_font("Helvetica", "B", 9.5)
-        pdf.cell(130, 8, f" {val_opp} units", border=1, ln=True)
-        
-        pdf.set_font("Helvetica", "", 9.5)
-        val_impact = business_impact.get('estimated_financial_impact', business_impact.get('potential_revenue_at_risk', 0.0))
-        pdf.cell(60, 8, " Estimated Financial Impact:", border=1, fill=True)
-        pdf.set_font("Helvetica", "B", 9.5)
-        pdf.cell(130, 8, f" ${val_impact:,.2f} impact", border=1, ln=True)
-        
-        pdf.set_font("Helvetica", "", 9.5)
-        val_score = business_impact.get('strategic_optimization_index', business_impact.get('retention_opportunity_score', 80))
-        pdf.cell(60, 8, " Strategic Optimization Index:", border=1, fill=True)
-        pdf.set_font("Helvetica", "B", 9.5)
-        pdf.cell(130, 8, f" {val_score}/100 index viability", border=1, ln=True)
-        pdf.ln(5)
-    
     # 2. Key Insights
     pdf.set_font("Helvetica", "B", 13)
     pdf.set_text_color(30, 41, 59)
@@ -78,7 +48,6 @@ def build_pdf_report(report_data: dict, objective: str) -> io.BytesIO:
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(71, 85, 105)
     for insight in report_data.get("insights", []):
-        # Clean bullet points
         pdf.multi_cell(0, 5.5, f"- {insight}")
     pdf.ln(6)
     

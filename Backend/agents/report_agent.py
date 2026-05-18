@@ -18,7 +18,6 @@ class ReportAgent:
     def generate_executive_report(state: dict, objective: str, df: pd.DataFrame) -> dict:
         state.setdefault("agent_logs", []).append("[Report Agent] Synthesizing final multi-agent dataset outputs...")
         
-        # 1. Programmatically calculate precise business impact metrics in Python
         total_rows = len(df)
         avg_value = 50.00 # fallback default
         
@@ -35,24 +34,6 @@ class ReportAgent:
         if not target or target not in df.columns:
             target = df.columns[-1] # fallback to last column
             
-        estimated_target_opportunity = int(total_rows * 0.18) # default 18%
-        
-        if target in df.columns:
-            try:
-                # Count positive instances (e.g. Churn='Yes', Fraud=1, Spam=1, Spam='True', etc.)
-                pos_mask = (df[target] == 'Yes') | (df[target] == 'yes') | (df[target] == 1) | (df[target] == '1') | (df[target] == 'True') | (df[target] == True) | (df[target] == 'positive') | (df[target] == 'High')
-                pos_count = int(pos_mask.sum())
-                if pos_count > 0:
-                    estimated_target_opportunity = pos_count
-                else:
-                    # If continuous numeric target, let's count values above mean
-                    if df[target].dtype in [np.number]:
-                        estimated_target_opportunity = int((df[target] > df[target].mean()).sum())
-            except:
-                pass
-                
-        estimated_financial_impact = round(estimated_target_opportunity * avg_value, 2)
-        
         accuracy_or_r2 = 0.82 # default fallback
         if "models" in state:
             if "classification" in state["models"]:
@@ -60,19 +41,6 @@ class ReportAgent:
             elif "regression" in state["models"]:
                 accuracy_or_r2 = state["models"]["regression"].get("r2_score", 0.82)
                 
-        strategic_optimization_index = int(accuracy_or_r2 * 100)
-        
-        # Build business_impact dictionary with both generic and legacy keys for maximum backward compatibility
-        business_impact = {
-            "estimated_target_opportunity": estimated_target_opportunity,
-            "estimated_financial_impact": estimated_financial_impact,
-            "strategic_optimization_index": strategic_optimization_index,
-            # Legacy mapping for backwards-compatibility:
-            "estimated_high_risk_customers": estimated_target_opportunity,
-            "potential_revenue_at_risk": estimated_financial_impact,
-            "retention_opportunity_score": strategic_optimization_index
-        }
-        
         # 2. Proceed to LLM phrasing
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
@@ -81,7 +49,7 @@ class ReportAgent:
                 "executive_summary": f"⚠️ GROQ_API_KEY is not set. Strategic briefing for objective '{objective}' is currently based on baseline statistical trends.",
                 "insights": [
                     f"Target variable '{target}' shows strong numeric correlation trends across features.",
-                    f"A total of {estimated_target_opportunity} high-impact opportunity units identified."
+                    f"A total of {total_rows} total rows analyzed with a mean unit ticket value of ${avg_value:.2f}."
                 ],
                 "recommendations": [
                     {
@@ -91,8 +59,7 @@ class ReportAgent:
                         "why_this_insight": "Feature coefficients indicate high model sensitivity to quantitative changes."
                     }
                 ],
-                "risk_summary": f"Potential optimization value of ${estimated_financial_impact:,.2f} exposed.",
-                "business_impact": business_impact
+                "risk_summary": "Perform targeted pricing, resource scaling, and parameter optimization based on numeric correlation trends."
             }
             
         try:
@@ -181,9 +148,6 @@ class ReportAgent:
                 
             report_data = json.loads(raw_content)
             
-            # Inject programmatically computed business metrics directly
-            report_data["business_impact"] = business_impact
-            
             state["agent_logs"].append("[Report Agent] Executive report synthesized successfully.")
             return report_data
             
@@ -195,17 +159,16 @@ class ReportAgent:
             return {
                 "executive_summary": f"Initial analytical synthesis for '{objective}'. Outlier variance and quantitative features represent the primary drivers of target outcome variances.",
                 "insights": [
-                  f"Features correlated with '{target}' show strong predictive impact.",
-                  f"High-impact opportunity cohort represents immediate optimization targets."
+                    f"Features correlated with '{target}' show strong predictive impact.",
+                    f"High-impact opportunity cohort represents immediate optimization targets."
                 ],
                 "recommendations": [
-                  {
-                    "action": "Optimize Target Feature Performance",
-                    "evidence": "Categorical frequency analysis shows feature divergence.",
-                    "confidence": "High",
-                    "why_this_insight": "Statistical analysis of top numeric coefficients highlights key impact leverage points."
-                  }
+                    {
+                        "action": "Optimize Target Feature Performance",
+                        "evidence": "Categorical frequency analysis shows feature divergence.",
+                        "confidence": "High",
+                        "why_this_insight": "Statistical analysis of top numeric coefficients highlights key impact leverage points."
+                    }
                 ],
-                "risk_summary": f"High risk/opportunity identified in target cohort representing a ${estimated_financial_impact:,.2f} strategic save.",
-                "business_impact": business_impact
+                "risk_summary": "High risk/opportunity identified in target cohort representing a strong strategic optimization opportunity."
             }

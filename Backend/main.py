@@ -10,7 +10,6 @@ from agents.planner_agent import generate_plan
 from executors.workflow_executor import execute_plan
 from agents.report_agent import ReportAgent
 from reports.pdf_generator import build_pdf_report
-from services.database_service import save_analysis, get_user_history, get_analysis, delete_analysis
 
 app = FastAPI(title="Agentic AI Analytics API")
 
@@ -27,26 +26,7 @@ class PDFRequest(BaseModel):
     report: dict
     objective: str
 
-# --- HISTORICAL BRIEFINGS ENDPOINTS (ANONYMOUS) ---
-@app.get("/api/history")
-def fetch_history():
-    return get_user_history()
-
-@app.get("/api/history/{id}")
-def fetch_analysis_detail(id: str):
-    record = get_analysis(id)
-    if not record:
-        raise HTTPException(status_code=404, detail="Analysis record not found.")
-    return record
-
-@app.delete("/api/history/{id}")
-def remove_analysis_record(id: str):
-    success = delete_analysis(id)
-    if not success:
-        raise HTTPException(status_code=500, detail="Failed to delete history record.")
-    return {"success": True}
-
-# --- ANALYTICS ENDPOINTS (ANONYMOUS) ---
+# --- ANALYTICS ENDPOINTS (ANONYMOUS & STATISTIC ONLY) ---
 @app.post("/api/upload")
 async def upload_csv(
     file: UploadFile = File(...), 
@@ -81,19 +61,7 @@ async def upload_csv(
         # 4. Report Agent: Synthesize elite executive strategy briefing
         report = ReportAgent.generate_executive_report(state, objective, df)
 
-        # 5. Persistent database entry (under standard local user session)
-        save_analysis(
-            objective=objective or "General EDA",
-            plan=plan,
-            eda=state.get("eda", {}),
-            charts=state.get("charts", {}),
-            insights=state.get("insights", ""),
-            models=state.get("models", {}),
-            agent_logs=state.get("agent_logs", []),
-            report=report
-        )
-
-        # Build final response payload
+        # Build final response payload (fully anonymous with no database tracking)
         return {
             "plan": plan,
             "objective": objective,

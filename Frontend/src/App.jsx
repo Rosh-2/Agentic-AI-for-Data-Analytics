@@ -2,13 +2,11 @@ import { useState } from 'react'
 import { Activity, RefreshCcw, Target } from 'lucide-react'
 import FileUpload from './components/FileUpload'
 import DashboardLayout from './components/DashboardLayout'
-import HistorySidebar from './components/HistorySidebar'
 
 function App() {
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-  const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0)
 
   const handleReset = () => {
     setDashboardData(null)
@@ -25,7 +23,7 @@ function App() {
           <h1 className="text-xl font-bold text-slate-800 tracking-tight">Agentic AI Analytics</h1>
         </div>
 
-        {/* User Session Controls */}
+        {/* Workspace Controls */}
         <div className="flex items-center gap-4">
           {dashboardData && (
             <button 
@@ -38,23 +36,9 @@ function App() {
         </div>
       </header>
 
-      {/* Main Workspace with Sidebar */}
+      {/* Main Workspace (Takes 100% of Screen Width) */}
       <div className="flex flex-1 overflow-hidden bg-slate-50">
         
-        {/* Dynamic Previous Briefings Sidebar */}
-        <HistorySidebar 
-          refreshTrigger={refreshHistoryTrigger}
-          onSelectBriefing={(briefing) => {
-            setError(null);
-            setDashboardData(briefing);
-          }}
-          onDeleted={(deletedId) => {
-            if (dashboardData && dashboardData.id === deletedId) {
-              setDashboardData(null);
-            }
-          }}
-        />
-
         {/* Content Panel (Independently Scrollable) */}
         <main className="flex-1 overflow-y-auto px-6 py-8 flex flex-col gap-8 scrollbar-thin">
           {!dashboardData && (
@@ -69,10 +53,7 @@ function App() {
               </div>
               <div className="w-full max-w-3xl mx-auto">
                 <FileUpload 
-                  setData={(data) => {
-                    setDashboardData(data);
-                    setRefreshHistoryTrigger(prev => prev + 1);
-                  }} 
+                  setData={setDashboardData} 
                   setLoading={setLoading} 
                   setError={setError} 
                   loading={loading} 
