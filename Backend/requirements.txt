@@ -5,3 +5,6 @@ python-multipart
 scipy
 python-dotenv
 groq
+scikit-learn
+fpdf2
+numpy
