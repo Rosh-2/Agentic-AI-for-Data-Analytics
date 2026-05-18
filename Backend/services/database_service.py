@@ -18,14 +18,6 @@ def _init_sqlite():
         conn = sqlite3.connect(SQLITE_DB)
         cursor = conn.cursor()
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                username TEXT PRIMARY KEY,
-                email TEXT,
-                password TEXT,
-                created_at INTEGER
-            )
-        """)
-        cursor.execute("""
             CREATE TABLE IF NOT EXISTS history (
                 id TEXT PRIMARY KEY,
                 username TEXT,
@@ -72,49 +64,7 @@ def _supabase_req(method: str, path: str, body: dict = None, filters: dict = Non
 
 # --- PUBLIC INTERFACE ---
 
-def get_user(username: str) -> dict:
-    clean_username = username.strip().lower()
-    if IS_SUPABASE_ACTIVE:
-        res = _supabase_req("GET", "users", filters={"username": f"eq.{clean_username}"})
-        return res[0] if res else None
-    else:
-        conn = sqlite3.connect(SQLITE_DB)
-        cursor = conn.cursor()
-        cursor.execute("SELECT username, email, password, created_at FROM users WHERE username = ?", (clean_username,))
-        row = cursor.fetchone()
-        conn.close()
-        if row:
-            return {"username": row[0], "email": row[1], "password": row[2], "created_at": row[3]}
-        return None
-
-def save_user(username: str, email: str, hashed_pw: str) -> bool:
-    clean_username = username.strip().lower()
-    if IS_SUPABASE_ACTIVE:
-        body = {
-            "username": clean_username,
-            "email": email,
-            "password": hashed_pw,
-            "created_at": int(time.time())
-        }
-        res = _supabase_req("POST", "users", body=body)
-        return bool(res)
-    else:
-        try:
-            conn = sqlite3.connect(SQLITE_DB)
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO users (username, email, password, created_at) VALUES (?, ?, ?, ?)",
-                (clean_username, email, hashed_pw, int(time.time()))
-            )
-            conn.commit()
-            conn.close()
-            return True
-        except Exception as e:
-            print(f"SQLite save user error: {e}")
-            return False
-
 def save_analysis(
-    username: str, 
     objective: str, 
     plan: dict, 
     eda: dict, 
@@ -126,6 +76,7 @@ def save_analysis(
 ) -> str:
     analysis_id = str(uuid.uuid4())
     created_at = int(time.time())
+    username = "default"
     
     plan_str = json.dumps(plan)
     eda_str = json.dumps(eda)
@@ -137,7 +88,7 @@ def save_analysis(
     if IS_SUPABASE_ACTIVE:
         body = {
             "id": analysis_id,
-            "username": username.strip().lower(),
+            "username": username,
             "objective": objective,
             "plan": plan_str,
             "eda": eda_str,
@@ -155,24 +106,22 @@ def save_analysis(
         cursor.execute(
             """INSERT INTO history (id, username, objective, plan, eda, charts, insights, models, agent_logs, report, created_at) 
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (analysis_id, username.strip().lower(), objective, plan_str, eda_str, charts_str, insights, models_str, agent_logs_str, report_str, created_at)
+            (analysis_id, username, objective, plan_str, eda_str, charts_str, insights, models_str, agent_logs_str, report_str, created_at)
         )
         conn.commit()
         conn.close()
         
     return analysis_id
 
-def get_user_history(username: str) -> list:
-    clean_username = username.strip().lower()
+def get_user_history() -> list:
+    username = "default"
     if IS_SUPABASE_ACTIVE:
-        # Supabase API query
-        res = _supabase_req("GET", "history", filters={"username": f"eq.{clean_username}", "select": "id,objective,created_at"})
-        # Sort by created_at descending
+        res = _supabase_req("GET", "history", filters={"username": f"eq.{username}", "select": "id,objective,created_at"})
         return sorted(res, key=lambda x: x.get("created_at", 0), reverse=True)
     else:
         conn = sqlite3.connect(SQLITE_DB)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, objective, created_at FROM history WHERE username = ? ORDER BY created_at DESC", (clean_username,))
+        cursor.execute("SELECT id, objective, created_at FROM history WHERE username = ? ORDER BY created_at DESC", (username,))
         rows = cursor.fetchall()
         conn.close()
         return [{"id": r[0], "objective": r[1], "created_at": r[2]} for r in rows]
@@ -220,16 +169,16 @@ def get_analysis(analysis_id: str) -> dict:
             }
         return None
 
-def delete_analysis(username: str, analysis_id: str) -> bool:
-    clean_username = username.strip().lower()
+def delete_analysis(analysis_id: str) -> bool:
+    username = "default"
     if IS_SUPABASE_ACTIVE:
-        res = _supabase_req("DELETE", "history", filters={"id": f"eq.{analysis_id}", "username": f"eq.{clean_username}"})
+        res = _supabase_req("DELETE", "history", filters={"id": f"eq.{analysis_id}", "username": f"eq.{username}"})
         return True
     else:
         try:
             conn = sqlite3.connect(SQLITE_DB)
             cursor = conn.cursor()
-            cursor.execute("DELETE FROM history WHERE id = ? AND username = ?", (analysis_id, clean_username))
+            cursor.execute("DELETE FROM history WHERE id = ? AND username = ?", (analysis_id, username))
             conn.commit()
             conn.close()
             return True

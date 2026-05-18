@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone'
 import { UploadCloud, File, Loader2, Target } from 'lucide-react'
 import axios from 'axios'
 
-export default function FileUpload({ setData, setLoading, setError, loading, token }) {
+export default function FileUpload({ setData, setLoading, setError, loading }) {
   const [objective, setObjective] = useState('')
 
   const onDrop = useCallback(async (acceptedFiles) => {
@@ -20,11 +20,9 @@ export default function FileUpload({ setData, setLoading, setError, loading, tok
     }
 
     try {
-      // Pass JWT session authorization
       const response = await axios.post('http://localhost:8000/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
         },
       })
       setData(response.data)
@@ -33,7 +31,7 @@ export default function FileUpload({ setData, setLoading, setError, loading, tok
     } finally {
       setLoading(false)
     }
-  }, [setData, setLoading, setError, objective, token])
+  }, [setData, setLoading, setError, objective])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

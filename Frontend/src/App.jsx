@@ -1,42 +1,18 @@
 import { useState } from 'react'
-import { Activity, RefreshCcw, Target, LogOut, User } from 'lucide-react'
+import { Activity, RefreshCcw, Target } from 'lucide-react'
 import FileUpload from './components/FileUpload'
 import DashboardLayout from './components/DashboardLayout'
-import AuthLayout from './components/AuthLayout'
 import HistorySidebar from './components/HistorySidebar'
 
 function App() {
-  const [token, setToken] = useState(localStorage.getItem('jwt_token') || null)
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('jwt_user') || 'null'))
   const [dashboardData, setDashboardData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0)
 
-  const handleAuthSuccess = (newToken, newUser) => {
-    localStorage.setItem('jwt_token', newToken);
-    localStorage.setItem('jwt_user', JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('jwt_token');
-    localStorage.removeItem('jwt_user');
-    setToken(null);
-    setUser(null);
-    setDashboardData(null);
-    setError(null);
-  }
-
   const handleReset = () => {
     setDashboardData(null)
     setError(null)
-  }
-
-  // Guard routing: show Auth screen if not logged in
-  if (!token) {
-    return <AuthLayout onAuthSuccess={handleAuthSuccess} />;
   }
 
   return (
@@ -51,13 +27,6 @@ function App() {
 
         {/* User Session Controls */}
         <div className="flex items-center gap-4">
-          {user && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-xl border border-slate-200">
-              <User className="w-4 h-4 text-indigo-500" />
-              <span className="text-xs font-bold text-slate-700">{user.username}</span>
-            </div>
-          )}
-          
           {dashboardData && (
             <button 
               onClick={handleReset}
@@ -66,13 +35,6 @@ function App() {
               <RefreshCcw className="w-4 h-4" /> Start Over
             </button>
           )}
-
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors"
-          >
-            <LogOut className="w-4 h-4" /> Logout
-          </button>
         </div>
       </header>
 
@@ -81,7 +43,6 @@ function App() {
         
         {/* Dynamic Previous Briefings Sidebar */}
         <HistorySidebar 
-          token={token}
           refreshTrigger={refreshHistoryTrigger}
           onSelectBriefing={(briefing) => {
             setError(null);
@@ -115,7 +76,6 @@ function App() {
                   setLoading={setLoading} 
                   setError={setError} 
                   loading={loading} 
-                  token={token}
                 />
                 {error && (
                   <div className="mt-4 p-4 bg-red-50 text-red-700 rounded-2xl border border-red-200 font-semibold text-sm">
@@ -142,7 +102,7 @@ function App() {
                   </div>
                 </div>
               )}
-              <DashboardLayout dashboardData={dashboardData} token={token} />
+              <DashboardLayout dashboardData={dashboardData} />
             </div>
           )}
         </main>

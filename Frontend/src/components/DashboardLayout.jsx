@@ -7,7 +7,7 @@ import ExecutiveReport from './ExecutiveReport'
 import { LayoutDashboard, FileText, Loader2 } from 'lucide-react'
 import axios from 'axios'
 
-export default function DashboardLayout({ dashboardData, token }) {
+export default function DashboardLayout({ dashboardData }) {
   const [isSimulationComplete, setIsSimulationComplete] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -24,10 +24,7 @@ export default function DashboardLayout({ dashboardData, token }) {
         report: report,
         objective: objective || "General EDA"
       }, {
-        responseType: 'blob',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        responseType: 'blob'
       });
       
       const blob = new Blob([response.data], { type: 'application/pdf' });

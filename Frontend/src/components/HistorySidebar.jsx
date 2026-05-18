@@ -2,19 +2,16 @@ import React, { useEffect, useState } from 'react'
 import { Calendar, Trash2, Database, ChevronLeft, ChevronRight, FileText, Loader2, RefreshCw } from 'lucide-react'
 import axios from 'axios'
 
-export default function HistorySidebar({ token, onSelectBriefing, refreshTrigger, onDeleted }) {
+export default function HistorySidebar({ onSelectBriefing, refreshTrigger, onDeleted }) {
   const [isOpen, setIsOpen] = useState(true)
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(false)
   const [fetchingDetails, setFetchingDetails] = useState(null)
 
   const fetchHistory = async () => {
-    if (!token) return
     setLoading(true)
     try {
-      const res = await axios.get('http://localhost:8000/api/history', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await axios.get('http://localhost:8000/api/history')
       setHistory(res.data)
     } catch (err) {
       console.error("Failed to load analytics history:", err)
@@ -25,14 +22,12 @@ export default function HistorySidebar({ token, onSelectBriefing, refreshTrigger
 
   useEffect(() => {
     fetchHistory()
-  }, [token, refreshTrigger])
+  }, [refreshTrigger])
 
   const handleSelect = async (id) => {
     setFetchingDetails(id)
     try {
-      const res = await axios.get(`http://localhost:8000/api/history/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await axios.get(`http://localhost:8000/api/history/${id}`)
       onSelectBriefing(res.data)
     } catch (err) {
       console.error("Failed to fetch history details:", err)
@@ -47,9 +42,7 @@ export default function HistorySidebar({ token, onSelectBriefing, refreshTrigger
     if (!window.confirm("Are you sure you want to delete this historical briefing?")) return
     
     try {
-      await axios.delete(`http://localhost:8000/api/history/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await axios.delete(`http://localhost:8000/api/history/${id}`)
       setHistory(prev => prev.filter(item => item.id !== id))
       if (onDeleted) onDeleted(id)
     } catch (err) {

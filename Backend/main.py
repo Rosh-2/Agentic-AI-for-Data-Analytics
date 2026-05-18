@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Header, Depends
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -10,7 +10,6 @@ from agents.planner_agent import generate_plan
 from executors.workflow_executor import execute_plan
 from agents.report_agent import ReportAgent
 from reports.pdf_generator import build_pdf_report
-from services.auth_service import register_user, authenticate_user, decode_jwt
 from services.database_service import save_analysis, get_user_history, get_analysis, delete_analysis
 
 app = FastAPI(title="Agentic AI Analytics API")
@@ -28,79 +27,31 @@ class PDFRequest(BaseModel):
     report: dict
     objective: str
 
-class RegisterRequest(BaseModel):
-    username: str
-    email: str = ""
-    password: str
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-# Token Validation Dependency
-async def get_current_user(authorization: str = Header(None)):
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Missing Authorization Header")
-    try:
-        token_type, token = authorization.split(" ")
-        if token_type.lower() != "bearer":
-            raise HTTPException(status_code=401, detail="Invalid token type")
-        user = decode_jwt(token)
-        if not user:
-            raise HTTPException(status_code=401, detail="Invalid or expired token")
-        return user
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid authorization header format")
-
-# --- AUTH ENDPOINTS ---
-@app.post("/api/auth/register")
-def auth_register(req: RegisterRequest):
-    res = register_user(req.username, req.email, req.password)
-    if not res["success"]:
-        raise HTTPException(status_code=400, detail=res["message"])
-    return res
-
-@app.post("/api/auth/login")
-def auth_login(req: LoginRequest):
-    res = authenticate_user(req.username, req.password)
-    if not res["success"]:
-        raise HTTPException(status_code=400, detail=res["message"])
-    return res
-
-@app.get("/api/auth/me")
-def auth_me(user: dict = Depends(get_current_user)):
-    return user
-
-# --- HISTORICAL BRIEFINGS ENDPOINTS ---
+# --- HISTORICAL BRIEFINGS ENDPOINTS (ANONYMOUS) ---
 @app.get("/api/history")
-def fetch_history(user: dict = Depends(get_current_user)):
-    return get_user_history(user["username"])
+def fetch_history():
+    return get_user_history()
 
 @app.get("/api/history/{id}")
-def fetch_analysis_detail(id: str, user: dict = Depends(get_current_user)):
+def fetch_analysis_detail(id: str):
     record = get_analysis(id)
     if not record:
         raise HTTPException(status_code=404, detail="Analysis record not found.")
     return record
 
 @app.delete("/api/history/{id}")
-def remove_analysis_record(id: str, user: dict = Depends(get_current_user)):
-    success = delete_analysis(user["username"], id)
+def remove_analysis_record(id: str):
+    success = delete_analysis(id)
     if not success:
-        raise HTTPException(status_code=550, detail="Failed to delete history record.")
+        raise HTTPException(status_code=500, detail="Failed to delete history record.")
     return {"success": True}
 
-# --- SECURED ANALYTICS ENDPOINTS ---
+# --- ANALYTICS ENDPOINTS (ANONYMOUS) ---
 @app.post("/api/upload")
 async def upload_csv(
     file: UploadFile = File(...), 
-    objective: str = Form(None),
-    authorization: str = Header(None)
+    objective: str = Form(None)
 ):
-    # Verify session JWT and fetch username
-    user = await get_current_user(authorization)
-    username = user.get("username")
-    
     if not file.filename.endswith(".csv"):
         raise HTTPException(status_code=400, detail="Only CSV files are supported.")
     
@@ -130,9 +81,8 @@ async def upload_csv(
         # 4. Report Agent: Synthesize elite executive strategy briefing
         report = ReportAgent.generate_executive_report(state, objective, df)
 
-        # 5. Persistent database entry
+        # 5. Persistent database entry (under standard local user session)
         save_analysis(
-            username=username,
             objective=objective or "General EDA",
             plan=plan,
             eda=state.get("eda", {}),
@@ -161,10 +111,7 @@ async def upload_csv(
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 @app.post("/api/download-pdf")
-async def download_pdf(req: PDFRequest, authorization: str = Header(None)):
-    # Verify session JWT
-    await get_current_user(authorization)
-    
+async def download_pdf(req: PDFRequest):
     try:
         pdf_buffer = build_pdf_report(req.report, req.objective)
         return StreamingResponse(
