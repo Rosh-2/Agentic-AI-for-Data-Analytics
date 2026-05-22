@@ -20,7 +20,8 @@ export default function FileUpload({ setData, setLoading, setError, loading }) {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/api/upload', formData, {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.post(`${apiBaseUrl}/api/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

@@ -20,7 +20,8 @@ export default function DashboardLayout({ dashboardData }) {
     if (!report) return;
     setIsDownloading(true);
     try {
-      const response = await axios.post('http://localhost:8000/api/download-pdf', {
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await axios.post(`${apiBaseUrl}/api/download-pdf`, {
         report: report,
         objective: objective || "General EDA"
       }, {
